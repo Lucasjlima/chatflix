@@ -102,3 +102,43 @@ def test_get_movie_details_empty_genres_returns_empty_list(requests_mock, fake_t
     client = TMDBClient(api_key="test")
     card = client.get_movie_details(movie_id=694, justification="x")
     assert card.genres == []
+
+
+def test_search_movie_timeout_raises_tmdb_error(requests_mock):
+    requests_mock.get(
+        "https://api.themoviedb.org/3/search/movie",
+        exc=requests.Timeout,
+    )
+    client = TMDBClient(api_key="test")
+    with pytest.raises(TMDBError):
+        client.search_movie("X", year=None)
+
+
+def test_search_movie_http_500_raises_tmdb_error(requests_mock):
+    requests_mock.get(
+        "https://api.themoviedb.org/3/search/movie",
+        status_code=500,
+    )
+    client = TMDBClient(api_key="test")
+    with pytest.raises(TMDBError):
+        client.search_movie("X", year=None)
+
+
+def test_get_movie_details_timeout_raises_tmdb_error(requests_mock):
+    requests_mock.get(
+        "https://api.themoviedb.org/3/movie/694",
+        exc=requests.Timeout,
+    )
+    client = TMDBClient(api_key="test")
+    with pytest.raises(TMDBError):
+        client.get_movie_details(movie_id=694, justification="x")
+
+
+def test_get_movie_details_http_500_raises_tmdb_error(requests_mock):
+    requests_mock.get(
+        "https://api.themoviedb.org/3/movie/694",
+        status_code=500,
+    )
+    client = TMDBClient(api_key="test")
+    with pytest.raises(TMDBError):
+        client.get_movie_details(movie_id=694, justification="x")
