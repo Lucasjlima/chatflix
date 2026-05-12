@@ -2,7 +2,7 @@ import json
 
 import google.generativeai as genai
 
-from models import Recommendation
+from models import Recommendation, OffTopicRequest
 
 
 RESPONSE_SCHEMA = {
@@ -34,6 +34,8 @@ class GeminiClient:
             },
         )
         data = json.loads(response.text)
+        if not data["title"]:
+            raise OffTopicRequest()
         return Recommendation(
             title=data["title"],
             year=data.get("year"),
