@@ -1,0 +1,4 @@
+-r requirements.txt
+pytest>=8.0,<9
+pytest-mock>=3.12,<4
+requests-mock>=1.11,<2

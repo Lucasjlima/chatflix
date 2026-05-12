@@ -1,0 +1,4 @@
+streamlit>=1.30,<2
+google-generativeai>=0.5,<1
+requests>=2.31,<3
+python-dotenv>=1.0,<2
