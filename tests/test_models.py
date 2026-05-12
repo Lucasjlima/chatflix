@@ -1,4 +1,13 @@
-from models import Recommendation, MovieCard
+from models import (
+    Recommendation,
+    MovieCard,
+    RecommendError,
+    MovieNotFound,
+    AIQuotaExceeded,
+    AIInternalError,
+    TMDBError,
+    OffTopicRequest,
+)
 
 
 def test_recommendation_holds_title_year_and_justification():
@@ -36,3 +45,34 @@ def test_movie_card_poster_url_can_be_none():
         director="N/A", synopsis="N/A", genres=[], justification="N/A",
     )
     assert card.poster_url is None
+
+
+def test_movie_not_found_has_user_message():
+    err = MovieNotFound()
+    assert isinstance(err, RecommendError)
+    assert err.user_message == "Não foi possível encontrar um filme correspondente."
+
+
+def test_ai_quota_exceeded_has_user_message():
+    err = AIQuotaExceeded()
+    assert err.user_message == "Ocorreu um erro nas configurações internas da IA."
+
+
+def test_ai_internal_error_has_user_message():
+    err = AIInternalError()
+    assert err.user_message == "Ocorreu um erro nas configurações internas da IA."
+
+
+def test_tmdb_error_has_user_message():
+    err = TMDBError()
+    assert err.user_message == "Ocorreu um erro interno na API."
+
+
+def test_off_topic_request_has_user_message():
+    err = OffTopicRequest()
+    assert err.user_message == "Meu objetivo é apenas recomendar filmes com base nas suas preferências."
+
+
+def test_all_errors_inherit_recommend_error():
+    for cls in (MovieNotFound, AIQuotaExceeded, AIInternalError, TMDBError, OffTopicRequest):
+        assert issubclass(cls, RecommendError)
