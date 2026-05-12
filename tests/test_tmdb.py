@@ -33,3 +33,23 @@ def test_search_movie_no_results_raises_movie_not_found(requests_mock):
     client = TMDBClient(api_key="test")
     with pytest.raises(MovieNotFound):
         client.search_movie("Filme Inexistente XYZ", year=2099)
+
+
+def test_get_movie_details_returns_movie_card(requests_mock, fake_tmdb_details_response):
+    requests_mock.get(
+        "https://api.themoviedb.org/3/movie/694",
+        json=fake_tmdb_details_response,
+    )
+    client = TMDBClient(api_key="test")
+    card = client.get_movie_details(movie_id=694, justification="por que combina")
+
+    assert isinstance(card, MovieCard)
+    assert card.title == "O Iluminado"
+    assert card.year == 1980
+    assert card.poster_url == "https://image.tmdb.org/t/p/w500/abc123.jpg"
+    assert card.imdb_rating == "8.4"
+    assert card.director == "Stanley Kubrick"
+    assert card.synopsis.startswith("Um escritor")
+    assert "Terror" in card.genres
+    assert "Suspense" in card.genres
+    assert card.justification == "por que combina"
