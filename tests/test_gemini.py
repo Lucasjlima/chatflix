@@ -63,3 +63,43 @@ def test_suggest_quota_exceeded_raises_ai_quota_exceeded(mocker):
     client = GeminiClient(api_key="test", model_name="gemini-pro", system_prompt="x")
     with pytest.raises(AIQuotaExceeded):
         client.suggest("teste", exclude_titles=[])
+
+
+from models import AIInternalError
+
+
+def test_suggest_invalid_json_raises_ai_internal_error(mocker):
+    response = MagicMock()
+    response.text = "isto não é JSON {{ "
+    fake_model = MagicMock()
+    fake_model.generate_content.return_value = response
+    mocker.patch("services.gemini.genai.GenerativeModel", return_value=fake_model)
+    mocker.patch("services.gemini.genai.configure")
+
+    client = GeminiClient(api_key="test", model_name="gemini-pro", system_prompt="x")
+    with pytest.raises(AIInternalError):
+        client.suggest("teste", exclude_titles=[])
+
+
+def test_suggest_missing_required_field_raises_ai_internal_error(mocker):
+    response = MagicMock()
+    response.text = json.dumps({"year": 1980})  # falta title e justification
+    fake_model = MagicMock()
+    fake_model.generate_content.return_value = response
+    mocker.patch("services.gemini.genai.GenerativeModel", return_value=fake_model)
+    mocker.patch("services.gemini.genai.configure")
+
+    client = GeminiClient(api_key="test", model_name="gemini-pro", system_prompt="x")
+    with pytest.raises(AIInternalError):
+        client.suggest("teste", exclude_titles=[])
+
+
+def test_suggest_generic_sdk_exception_raises_ai_internal_error(mocker):
+    fake_model = MagicMock()
+    fake_model.generate_content.side_effect = RuntimeError("falha genérica")
+    mocker.patch("services.gemini.genai.GenerativeModel", return_value=fake_model)
+    mocker.patch("services.gemini.genai.configure")
+
+    client = GeminiClient(api_key="test", model_name="gemini-pro", system_prompt="x")
+    with pytest.raises(AIInternalError):
+        client.suggest("teste", exclude_titles=[])

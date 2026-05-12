@@ -3,7 +3,7 @@ import json
 import google.generativeai as genai
 from google.api_core.exceptions import ResourceExhausted
 
-from models import Recommendation, OffTopicRequest, AIQuotaExceeded
+from models import Recommendation, OffTopicRequest, AIQuotaExceeded, AIInternalError
 
 
 RESPONSE_SCHEMA = {
@@ -37,13 +37,22 @@ class GeminiClient:
             )
         except ResourceExhausted as e:
             raise AIQuotaExceeded() from e
-        data = json.loads(response.text)
-        if not data["title"]:
+        except Exception as e:
+            raise AIInternalError() from e
+
+        try:
+            data = json.loads(response.text)
+            title = data["title"]
+            justification = data["justification"]
+        except (json.JSONDecodeError, KeyError, TypeError) as e:
+            raise AIInternalError() from e
+
+        if not title:
             raise OffTopicRequest()
         return Recommendation(
-            title=data["title"],
+            title=title,
             year=data.get("year"),
-            justification=data["justification"],
+            justification=justification,
         )
 
     @staticmethod
