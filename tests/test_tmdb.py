@@ -53,3 +53,52 @@ def test_get_movie_details_returns_movie_card(requests_mock, fake_tmdb_details_r
     assert "Terror" in card.genres
     assert "Suspense" in card.genres
     assert card.justification == "por que combina"
+
+
+def test_get_movie_details_no_poster_path_returns_none(requests_mock, fake_tmdb_details_response):
+    data = {**fake_tmdb_details_response, "poster_path": None}
+    requests_mock.get("https://api.themoviedb.org/3/movie/694", json=data)
+    client = TMDBClient(api_key="test")
+    card = client.get_movie_details(movie_id=694, justification="x")
+    assert card.poster_url is None
+
+
+def test_get_movie_details_no_director_returns_fallback(requests_mock, fake_tmdb_details_response):
+    data = {**fake_tmdb_details_response,
+            "credits": {"crew": [{"job": "Writer", "name": "Foo"}]}}
+    requests_mock.get("https://api.themoviedb.org/3/movie/694", json=data)
+    client = TMDBClient(api_key="test")
+    card = client.get_movie_details(movie_id=694, justification="x")
+    assert card.director == "Não encontrado"
+
+
+def test_get_movie_details_zero_vote_average_returns_fallback(requests_mock, fake_tmdb_details_response):
+    data = {**fake_tmdb_details_response, "vote_average": 0}
+    requests_mock.get("https://api.themoviedb.org/3/movie/694", json=data)
+    client = TMDBClient(api_key="test")
+    card = client.get_movie_details(movie_id=694, justification="x")
+    assert card.imdb_rating == "Não disponível"
+
+
+def test_get_movie_details_empty_overview_returns_fallback(requests_mock, fake_tmdb_details_response):
+    data = {**fake_tmdb_details_response, "overview": ""}
+    requests_mock.get("https://api.themoviedb.org/3/movie/694", json=data)
+    client = TMDBClient(api_key="test")
+    card = client.get_movie_details(movie_id=694, justification="x")
+    assert card.synopsis == "Sinopse não encontrada"
+
+
+def test_get_movie_details_invalid_release_date_returns_year_none(requests_mock, fake_tmdb_details_response):
+    data = {**fake_tmdb_details_response, "release_date": ""}
+    requests_mock.get("https://api.themoviedb.org/3/movie/694", json=data)
+    client = TMDBClient(api_key="test")
+    card = client.get_movie_details(movie_id=694, justification="x")
+    assert card.year is None
+
+
+def test_get_movie_details_empty_genres_returns_empty_list(requests_mock, fake_tmdb_details_response):
+    data = {**fake_tmdb_details_response, "genres": []}
+    requests_mock.get("https://api.themoviedb.org/3/movie/694", json=data)
+    client = TMDBClient(api_key="test")
+    card = client.get_movie_details(movie_id=694, justification="x")
+    assert card.genres == []
