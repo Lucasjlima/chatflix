@@ -48,3 +48,18 @@ def test_suggest_empty_title_raises_off_topic(mocker):
     client = GeminiClient(api_key="test", model_name="gemini-pro", system_prompt="x")
     with pytest.raises(OffTopicRequest):
         client.suggest("qual é a capital da França?", exclude_titles=[])
+
+
+from google.api_core.exceptions import ResourceExhausted
+from models import AIQuotaExceeded
+
+
+def test_suggest_quota_exceeded_raises_ai_quota_exceeded(mocker):
+    fake_model = MagicMock()
+    fake_model.generate_content.side_effect = ResourceExhausted("429 quota")
+    mocker.patch("services.gemini.genai.GenerativeModel", return_value=fake_model)
+    mocker.patch("services.gemini.genai.configure")
+
+    client = GeminiClient(api_key="test", model_name="gemini-pro", system_prompt="x")
+    with pytest.raises(AIQuotaExceeded):
+        client.suggest("teste", exclude_titles=[])

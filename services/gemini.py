@@ -1,8 +1,9 @@
 import json
 
 import google.generativeai as genai
+from google.api_core.exceptions import ResourceExhausted
 
-from models import Recommendation, OffTopicRequest
+from models import Recommendation, OffTopicRequest, AIQuotaExceeded
 
 
 RESPONSE_SCHEMA = {
@@ -26,13 +27,16 @@ class GeminiClient:
 
     def suggest(self, user_prompt: str, exclude_titles: list[str]) -> Recommendation:
         full_prompt = self._build_prompt(user_prompt, exclude_titles)
-        response = self._model.generate_content(
-            full_prompt,
-            generation_config={
-                "response_mime_type": "application/json",
-                "response_schema": RESPONSE_SCHEMA,
-            },
-        )
+        try:
+            response = self._model.generate_content(
+                full_prompt,
+                generation_config={
+                    "response_mime_type": "application/json",
+                    "response_schema": RESPONSE_SCHEMA,
+                },
+            )
+        except ResourceExhausted as e:
+            raise AIQuotaExceeded() from e
         data = json.loads(response.text)
         if not data["title"]:
             raise OffTopicRequest()
