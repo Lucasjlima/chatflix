@@ -99,6 +99,36 @@ def init_session_state():
     st.session_state.setdefault("error", None)
 
 
+def _poster_src(card_poster_url: str | None) -> str:
+    if card_poster_url:
+        return card_poster_url
+    data = POSTER_FALLBACK_PATH.read_bytes()
+    b64 = base64.b64encode(data).decode("ascii")
+    return f"data:image/png;base64,{b64}"
+
+
+def _render_card(card):
+    poster = _poster_src(card.poster_url)
+    year_str = f"{card.year} - " if card.year else ""
+    genres_html = "".join(
+        f'<span class="cf-genre-pill">{g}</span>' for g in card.genres
+    )
+    html = f"""
+    <div class="cf-card">
+      <img class="cf-poster" src="{poster}" alt="poster" />
+      <div class="cf-card-body">
+        <div class="cf-title">{card.title}</div>
+        <div class="cf-meta">{year_str}dir. <strong>{card.director}</strong> - IMDB <strong>{card.imdb_rating}</strong></div>
+        <div>{genres_html}</div>
+        <div class="cf-syn">{card.synopsis}</div>
+        <div class="cf-just-label">POR QUE COMBINA</div>
+        <div class="cf-just">{card.justification}</div>
+      </div>
+    </div>
+    """
+    st.markdown(html, unsafe_allow_html=True)
+
+
 def _do_recommend(prompt: str, exclude: list[str], gemini: GeminiClient, tmdb: TMDBClient):
     try:
         card = recommend(prompt, exclude_titles=exclude, gemini=gemini, tmdb=tmdb)
@@ -154,6 +184,17 @@ def main():
 
     if st.session_state.error:
         st.markdown(f'<div class="cf-error">{st.session_state.error}</div>', unsafe_allow_html=True)
+
+    if st.session_state.last_card:
+        _render_card(st.session_state.last_card)
+        if st.button("Outra sugestão", key="another"):
+            st.session_state.error = None
+            _do_recommend(
+                st.session_state.last_prompt,
+                st.session_state.excluded_titles,
+                gemini, tmdb,
+            )
+            st.rerun()
 
 
 if __name__ == "__main__":
