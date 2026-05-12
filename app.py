@@ -99,6 +99,18 @@ def init_session_state():
     st.session_state.setdefault("error", None)
 
 
+def _do_recommend(prompt: str, exclude: list[str], gemini: GeminiClient, tmdb: TMDBClient):
+    try:
+        card = recommend(prompt, exclude_titles=exclude, gemini=gemini, tmdb=tmdb)
+        st.session_state.last_card = card
+        st.session_state.excluded_titles.append(card.title)
+        st.session_state.error = None
+        log.info("recommended title=%s", card.title)
+    except RecommendError as e:
+        st.session_state.error = e.user_message
+        log.warning("recommendation failed: %s", type(e).__name__)
+
+
 def main():
     st.set_page_config(page_title="Chatflix", page_icon=":clapper:", layout="centered")
     st.markdown(CSS, unsafe_allow_html=True)
@@ -106,9 +118,39 @@ def main():
 
     st.markdown('<div class="cf-brand">CHATFLIX</div>', unsafe_allow_html=True)
 
+    settings = get_settings()
+    if not settings.gemini_key or not settings.tmdb_key:
+        st.markdown(
+            '<div class="cf-error">Configure GEMINI_API_KEY e TMDB_API_KEY no arquivo .env.</div>',
+            unsafe_allow_html=True,
+        )
+        return
+
+    gemini = GeminiClient(
+        api_key=settings.gemini_key,
+        model_name="gemini-1.5-flash",
+        system_prompt=SYSTEM_PROMPT,
+    )
+    tmdb = TMDBClient(api_key=settings.tmdb_key)
+
     if st.session_state.last_card is None:
         st.markdown('<h1 class="cf-hero-title">Que filme<br>você procura?</h1>', unsafe_allow_html=True)
         st.markdown('<p class="cf-hero-sub">Descreva clima, humor, atmosfera ou tema</p>', unsafe_allow_html=True)
+
+    with st.form("recommend_form", clear_on_submit=False):
+        prompt = st.text_input(
+            label="prompt",
+            value=st.session_state.last_prompt,
+            placeholder="Ex: suspense psicológico, lento, com plot twist...",
+            label_visibility="collapsed",
+        )
+        submitted = st.form_submit_button("Recomendar filme", use_container_width=False)
+
+    if submitted and prompt.strip():
+        st.session_state.last_prompt = prompt.strip()
+        st.session_state.excluded_titles = []
+        st.session_state.error = None
+        _do_recommend(prompt.strip(), [], gemini, tmdb)
 
     if st.session_state.error:
         st.markdown(f'<div class="cf-error">{st.session_state.error}</div>', unsafe_allow_html=True)
