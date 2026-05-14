@@ -1,5 +1,7 @@
 import base64
 import logging
+from dotenv import load_dotenv
+import os
 from pathlib import Path
 
 import streamlit as st
@@ -9,6 +11,10 @@ from models import RecommendError
 from services.gemini import GeminiClient
 from services.tmdb import TMDBClient
 from services.recommender import recommend
+
+load_dotenv()
+
+model_name = os.getenv("GEMINI_MODEL_NAME")
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("chatflix")
@@ -158,7 +164,7 @@ def main():
 
     gemini = GeminiClient(
         api_key=settings.gemini_key,
-        model_name="gemini-1.5-flash",
+        model_name=model_name,
         system_prompt=SYSTEM_PROMPT,
     )
     tmdb = TMDBClient(api_key=settings.tmdb_key)

@@ -20,6 +20,7 @@ class TMDBClient:
             r = requests.get(f"{TMDB_BASE}/search/movie", params=params, timeout=TIMEOUT)
             r.raise_for_status()
         except requests.RequestException as e:
+            print(f"Erro na API TMDB: {repr(e)}")
             raise TMDBError() from e
 
         results = r.json().get("results", [])
